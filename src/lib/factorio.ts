@@ -8,10 +8,11 @@ import * as base64 from 'base64-js';
 // Factorioブループリントのバージョン
 const BLUEPRINT_VERSION = 1;
 
-// エンティティタイプ: ランプ
-const ENTITY_TYPE_LAMP = 'small-lamp';
-// ランプのデフォルト色
-// const DEFAULT_COLOR = { r: 0, g: 1, b: 0, a: 1 }; // 緑色
+// アイテムタイプ
+type FactorioItemType = 'small-lamp' | 'transport-belt' | 'concrete' | 'landfill';
+
+// アイテムのデフォルト = ランプ
+const DEFAULT_ITEM_TYPE = 'small-lamp';
 
 // エンティティの型定義
 interface BlueprintEntity {
@@ -28,9 +29,17 @@ interface BlueprintEntity {
  * QRコードマトリックスからFactorioブループリントを生成する
  * @param matrix QRコードのマトリックス（二次元配列）
  * @param scale ブループリントのスケール（1.0がデフォルト）
+ * @param itemType 使用するFactorioのアイテムタイプ
  * @returns Factorioブループリント文字列
  */
-export function generateFactorioBlueprint(matrix: boolean[][], scale: number = 1.0): string {
+export function generateFactorioBlueprint(
+  matrix: boolean[][], 
+  scale: number = 1.0,
+  itemType: FactorioItemType = DEFAULT_ITEM_TYPE
+): string {
+  // アイコン名を決定
+  let iconName = itemType;
+  
   // ブループリントの基本構造
   const blueprint = {
     blueprint: {
@@ -38,7 +47,7 @@ export function generateFactorioBlueprint(matrix: boolean[][], scale: number = 1
         {
           signal: {
             type: "item",
-            name: "small-lamp"
+            name: iconName
           },
           index: 1
         }
@@ -49,19 +58,23 @@ export function generateFactorioBlueprint(matrix: boolean[][], scale: number = 1
     }
   };
 
-  // QRコードのマトリックスを走査して、ランプエンティティを追加
+  // QRコードのマトリックスを走査して、エンティティを追加
   let entityIndex = 1;
   for (let y = 0; y < matrix.length; y++) {
     for (let x = 0; x < matrix[y].length; x++) {
       if (matrix[y][x]) { // ドットが存在する場合
-        blueprint.blueprint.entities.push({
+        const entity: BlueprintEntity = {
           entity_number: entityIndex,
-          name: ENTITY_TYPE_LAMP,
+          name: itemType,
           position: {
             x: (x * scale) + 0.5, // スケールに応じて位置を調整
             y: (y * scale) + 0.5
-          },
-          control_behavior: {
+          }
+        };
+
+        // アイテムタイプに応じた追加プロパティ
+        if (itemType === 'small-lamp') {
+          entity.control_behavior = {
             circuit_condition: {
               constant: 1,
               comparator: ">",
@@ -70,13 +83,17 @@ export function generateFactorioBlueprint(matrix: boolean[][], scale: number = 1
                 name: "signal-anything"
               }
             }
-          },
-          connections: {
+          };
+          entity.connections = {
             "1": {
               red: []
             }
-          }
-        });
+          };
+        } else if (itemType === 'transport-belt') {
+          entity.direction = 2; // 北向き
+        }
+        
+        blueprint.blueprint.entities.push(entity);
         entityIndex++;
       }
     }

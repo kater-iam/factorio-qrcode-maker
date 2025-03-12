@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateFactorioBlueprint, getQRCodeMatrix } from '../lib/factorio';
+import Image from 'next/image';
 
 interface QRCodeGeneratorProps {
   defaultValue?: string;
@@ -13,13 +14,44 @@ type QRCodeCanvasWithRef = typeof QRCodeCanvas & {
   ref?: React.RefObject<HTMLCanvasElement>;
 };
 
+// アイテムの種類
+type FactorioItemType = 'small-lamp' | 'transport-belt' | 'concrete' | 'landfill';
+
+// アイテム表示用の設定
+const itemImages: Record<FactorioItemType, { src: string, alt: string }> = {
+  'small-lamp': { src: '/images/factorio/items/small-lamp.png', alt: 'ランプ' },
+  'transport-belt': { src: '/images/factorio/items/transport-belt.png', alt: '黄色ベルト' },
+  'concrete': { src: '/images/factorio/items/concrete.png', alt: 'コンクリート' },
+  'landfill': { src: '/images/factorio/items/landfill.png', alt: '埋立地' }
+};
+
+// 背景用の土地テクスチャ
+const TERRAIN_TEXTURE = '/images/factorio/terrain/grass.png';
+
 export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' }: QRCodeGeneratorProps) {
   const [input, setInput] = useState<string>(defaultValue);
   const [blueprint, setBlueprint] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
-  const [size, setSize] = useState<number>(256);
   const [blueprintScale, setBlueprintScale] = useState<number>(1.0);
+  const [selectedItem, setSelectedItem] = useState<FactorioItemType>('small-lamp');
+  const [qrMatrix, setQrMatrix] = useState<boolean[][]>([]);
   const qrCodeRef = useRef<HTMLCanvasElement>(null);
+
+  // QRコードの表示サイズ（固定）
+  const size = 256;
+  const cellSize = 8; // QRコードのセルサイズ
+
+  // QRコードが変更されたときにマトリックスを更新
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (qrCodeRef.current) {
+        const matrix = getQRCodeMatrix(qrCodeRef.current);
+        setQrMatrix(matrix);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [input]);
 
   // QRコードが変更されたときにブループリントを更新
   useEffect(() => {
@@ -28,17 +60,14 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [input, size, blueprintScale]);
+  }, [input, selectedItem, blueprintScale, qrMatrix]);
 
   // ブループリントを生成する
   const generateBlueprint = () => {
-    if (!qrCodeRef.current) return;
-
-    // QRコードのマトリックスを取得
-    const matrix = getQRCodeMatrix(qrCodeRef.current);
+    if (qrMatrix.length === 0) return;
     
     // FactorioブループリントJSONを生成
-    const factorioBlueprint = generateFactorioBlueprint(matrix, blueprintScale);
+    const factorioBlueprint = generateFactorioBlueprint(qrMatrix, blueprintScale, selectedItem);
     setBlueprint(factorioBlueprint);
   };
 
@@ -54,6 +83,17 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
       .catch(err => {
         console.error('クリップボードへのコピーに失敗しました: ', err);
       });
+  };
+
+  // 選択されたアイテムの表示名
+  const getItemDisplayName = (itemType: FactorioItemType): string => {
+    switch (itemType) {
+      case 'small-lamp': return 'ランプ';
+      case 'transport-belt': return '黄色ベルト';
+      case 'concrete': return 'コンクリート';
+      case 'landfill': return '埋立地';
+      default: return 'ランプ';
+    }
   };
 
   return (
@@ -76,58 +116,135 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
       </div>
 
       <div className="flex flex-col md:flex-row w-full gap-4 mb-6">
-        {/* QRコードサイズ設定 */}
-        <div className="w-full md:w-1/2">
-          <label htmlFor="qr-size" className="block text-sm font-medium mb-2">
-            表示QRコードサイズ: {size}px
+        {/* アイテム選択ラジオボタン */}
+        <div className="w-full">
+          <label className="block text-sm font-medium mb-2">
+            Factorioアイテム選択
           </label>
-          <input
-            id="qr-size"
-            type="range"
-            min="128"
-            max="512"
-            step="32"
-            value={size}
-            onChange={(e) => setSize(Number(e.target.value))}
-            className="w-full"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            ※画面表示用のサイズです。ブループリントには影響しません
-          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <label className="flex items-center space-x-2 border p-2 rounded hover:bg-gray-50 cursor-pointer">
+              <input
+                type="radio"
+                name="factorio-item"
+                value="small-lamp"
+                checked={selectedItem === 'small-lamp'}
+                onChange={() => setSelectedItem('small-lamp')}
+                className="text-blue-600"
+              />
+              <span>ランプ</span>
+            </label>
+            <label className="flex items-center space-x-2 border p-2 rounded hover:bg-gray-50 cursor-pointer">
+              <input
+                type="radio"
+                name="factorio-item"
+                value="transport-belt"
+                checked={selectedItem === 'transport-belt'}
+                onChange={() => setSelectedItem('transport-belt')}
+                className="text-blue-600"
+              />
+              <span>黄色ベルト</span>
+            </label>
+            <label className="flex items-center space-x-2 border p-2 rounded hover:bg-gray-50 cursor-pointer">
+              <input
+                type="radio"
+                name="factorio-item"
+                value="concrete"
+                checked={selectedItem === 'concrete'}
+                onChange={() => setSelectedItem('concrete')}
+                className="text-blue-600"
+              />
+              <span>コンクリート</span>
+            </label>
+            <label className="flex items-center space-x-2 border p-2 rounded hover:bg-gray-50 cursor-pointer">
+              <input
+                type="radio"
+                name="factorio-item"
+                value="landfill"
+                checked={selectedItem === 'landfill'}
+                onChange={() => setSelectedItem('landfill')}
+                className="text-blue-600"
+              />
+              <span>埋立地</span>
+            </label>
+          </div>
         </div>
+      </div>
 
-        {/* ブループリントスケール設定 */}
-        <div className="w-full md:w-1/2">
-          <label htmlFor="blueprint-scale" className="block text-sm font-medium mb-2">
-            ブループリントスケール: {blueprintScale.toFixed(2)}
-          </label>
-          <input
-            id="blueprint-scale"
-            type="range"
-            min="0.5"
-            max="5.0"
-            step="0.1"
-            value={blueprintScale}
-            onChange={(e) => setBlueprintScale(Number(e.target.value))}
-            className="w-full"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            ※ファクトリオ内のランプ間の距離を調整します
-          </p>
-        </div>
+      {/* ブループリントスケール設定 */}
+      <div className="w-full mb-6">
+        <label htmlFor="blueprint-scale" className="block text-sm font-medium mb-2">
+          ブループリントスケール: {blueprintScale.toFixed(2)}
+        </label>
+        <input
+          id="blueprint-scale"
+          type="range"
+          min="0.5"
+          max="5.0"
+          step="0.1"
+          value={blueprintScale}
+          onChange={(e) => setBlueprintScale(Number(e.target.value))}
+          className="w-full"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          ※ファクトリオ内のアイテム間の距離を調整します
+        </p>
       </div>
 
       {/* QRコード表示 */}
       <div className="flex flex-col items-center mb-6">
-        <div className="mb-4 p-4 bg-white shadow-md rounded-md">
-          {/* QRCodeCanvasWithRef型にキャストして使用 */}
-          {React.createElement(QRCodeCanvas as unknown as QRCodeCanvasWithRef, {
-            value: input || ' ',
-            size: size,
-            level: "M",
-            includeMargin: true,
-            ref: qrCodeRef
-          })}
+        <div className="mb-4 relative">
+          {/* 非表示のQRCodeCanvas（マトリックスデータ取得用） */}
+          <div className="hidden">
+            {React.createElement(QRCodeCanvas as unknown as QRCodeCanvasWithRef, {
+              value: input || ' ',
+              size: size,
+              level: "M",
+              includeMargin: true,
+              ref: qrCodeRef
+            })}
+          </div>
+
+          {/* Factorioスタイルのプレビュー（土地の上にアイテム）*/}
+          <div 
+            className="relative w-[256px] h-[256px] overflow-hidden border-2 border-gray-800 rounded-md"
+            style={{ 
+              backgroundColor: '#8b7355',
+              backgroundImage: `url(${TERRAIN_TEXTURE})`,
+              backgroundSize: 'cover',
+              backgroundRepeat: 'repeat'
+            }}
+          >
+            {qrMatrix.length > 0 && (
+              <div className="absolute inset-0 grid" style={{ 
+                gridTemplateColumns: `repeat(${qrMatrix[0].length}, ${cellSize}px)`,
+                gridTemplateRows: `repeat(${qrMatrix.length}, ${cellSize}px)`
+              }}>
+                {qrMatrix.flatMap((row, y) => 
+                  row.map((cell, x) => (
+                    <div key={`${x}-${y}`} className="relative" style={{ width: cellSize, height: cellSize }}>
+                      {cell && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div 
+                            className="w-full h-full"
+                            style={{
+                              backgroundColor: selectedItem === 'concrete' || selectedItem === 'landfill' ? 'rgba(0,0,0,0.7)' : 'transparent',
+                              backgroundImage: `url(${itemImages[selectedItem].src})`,
+                              backgroundSize: 'contain',
+                              backgroundPosition: 'center',
+                              backgroundRepeat: 'no-repeat'
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-center mt-2">
+            選択アイテム: {getItemDisplayName(selectedItem)}
+          </p>
         </div>
         <button
           onClick={generateBlueprint}
