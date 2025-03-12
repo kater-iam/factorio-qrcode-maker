@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateFactorioBlueprint, getQRCodeMatrix } from '../lib/factorio';
-import Image from 'next/image';
 
 interface QRCodeGeneratorProps {
   defaultValue?: string;
@@ -41,6 +40,15 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
   const size = 256;
   const cellSize = 8; // QRコードのセルサイズ
 
+  // ブループリントを生成する
+  const generateBlueprint = useCallback(() => {
+    if (qrMatrix.length === 0) return;
+    
+    // FactorioブループリントJSONを生成
+    const factorioBlueprint = generateFactorioBlueprint(qrMatrix, blueprintScale, selectedItem);
+    setBlueprint(factorioBlueprint);
+  }, [qrMatrix, blueprintScale, selectedItem]);
+
   // QRコードが変更されたときにマトリックスを更新
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -60,16 +68,7 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [input, selectedItem, blueprintScale, qrMatrix]);
-
-  // ブループリントを生成する
-  const generateBlueprint = () => {
-    if (qrMatrix.length === 0) return;
-    
-    // FactorioブループリントJSONを生成
-    const factorioBlueprint = generateFactorioBlueprint(qrMatrix, blueprintScale, selectedItem);
-    setBlueprint(factorioBlueprint);
-  };
+  }, [input, selectedItem, blueprintScale, qrMatrix, generateBlueprint]);
 
   // クリップボードにコピー
   const copyToClipboard = () => {

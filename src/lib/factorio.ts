@@ -38,7 +38,7 @@ export function generateFactorioBlueprint(
   itemType: FactorioItemType = DEFAULT_ITEM_TYPE
 ): string {
   // アイコン名を決定
-  let iconName = itemType;
+  const iconName = itemType;
   
   // ブループリントの基本構造
   const blueprint = {
