@@ -1,12 +1,17 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateFactorioBlueprint, getQRCodeMatrix } from '../lib/factorio';
 
 interface QRCodeGeneratorProps {
   defaultValue?: string;
 }
+
+// QRCodeCanvasの型を拡張して、RefをHTMLCanvasElementとして明示的に受け入れる
+type QRCodeCanvasWithRef = typeof QRCodeCanvas & {
+  ref?: React.RefObject<HTMLCanvasElement>;
+};
 
 export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' }: QRCodeGeneratorProps) {
   const [input, setInput] = useState<string>(defaultValue);
@@ -89,13 +94,14 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
       {/* QRコード表示 */}
       <div className="flex flex-col items-center mb-6">
         <div className="mb-4 p-4 bg-white shadow-md rounded-md">
-          <QRCodeCanvas
-            value={input || ' '}
-            size={size}
-            level="M"
-            includeMargin
-            ref={qrCodeRef as any}
-          />
+          {/* QRCodeCanvasWithRef型にキャストして使用 */}
+          {React.createElement(QRCodeCanvas as unknown as QRCodeCanvasWithRef, {
+            value: input || ' ',
+            size: size,
+            level: "M",
+            includeMargin: true,
+            ref: qrCodeRef
+          })}
         </div>
         <button
           onClick={generateBlueprint}
