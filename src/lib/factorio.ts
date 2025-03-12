@@ -11,7 +11,18 @@ const BLUEPRINT_VERSION = 1;
 // エンティティタイプ: ランプ
 const ENTITY_TYPE_LAMP = 'small-lamp';
 // ランプのデフォルト色
-const DEFAULT_COLOR = { r: 0, g: 1, b: 0, a: 1 }; // 緑色
+// const DEFAULT_COLOR = { r: 0, g: 1, b: 0, a: 1 }; // 緑色
+
+// エンティティの型定義
+interface BlueprintEntity {
+  entity_number: number;
+  name: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  [key: string]: unknown;
+}
 
 /**
  * QRコードマトリックスからFactorioブループリントを生成する
@@ -31,7 +42,7 @@ export function generateFactorioBlueprint(matrix: boolean[][]): string {
           index: 1
         }
       ],
-      entities: [] as any[],
+      entities: [] as BlueprintEntity[],
       item: "blueprint",
       version: BLUEPRINT_VERSION
     }
