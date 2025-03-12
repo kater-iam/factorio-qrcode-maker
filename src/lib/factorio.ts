@@ -40,26 +40,11 @@ export function generateFactorioBlueprint(
   // アイコン名を決定
   const iconName = itemType;
   
-  // ブループリントの基本構造
-  const blueprint = {
-    blueprint: {
-      icons: [
-        {
-          signal: {
-            type: "item",
-            name: iconName
-          },
-          index: 1
-        }
-      ],
-      entities: [] as BlueprintEntity[],
-      item: "blueprint",
-      version: BLUEPRINT_VERSION
-    }
-  };
-
-  // QRコードのマトリックスを走査して、エンティティを追加
+  // エンティティを一括で生成（パフォーマンス向上のため）
+  const entities: BlueprintEntity[] = [];
   let entityIndex = 1;
+  
+  // QRコードのマトリックスを走査して、エンティティを追加
   for (let y = 0; y < matrix.length; y++) {
     for (let x = 0; x < matrix[y].length; x++) {
       if (matrix[y][x]) { // ドットが存在する場合
@@ -93,11 +78,29 @@ export function generateFactorioBlueprint(
           entity.direction = 2; // 北向き
         }
         
-        blueprint.blueprint.entities.push(entity);
+        entities.push(entity);
         entityIndex++;
       }
     }
   }
+  
+  // ブループリントの基本構造
+  const blueprint = {
+    blueprint: {
+      icons: [
+        {
+          signal: {
+            type: "item",
+            name: iconName
+          },
+          index: 1
+        }
+      ],
+      entities,
+      item: "blueprint",
+      version: BLUEPRINT_VERSION
+    }
+  };
 
   // ブループリントをJSON文字列に変換
   const blueprintJson = JSON.stringify(blueprint);
@@ -128,36 +131,36 @@ export function getQRCodeMatrix(canvas: HTMLCanvasElement): boolean[][] {
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
-  const matrix: boolean[][] = [];
-
+  
   // QRコードのサイズを推測
   const size = Math.sqrt(data.length / 4);
   const pixelSize = canvas.width / size;
+  
+  // マトリックスの初期化（サイズを適切に設定）
+  const matrixSize = Math.floor(size);
+  const matrix: boolean[][] = Array(matrixSize).fill(0).map(() => Array(matrixSize).fill(false));
 
-  // マトリックスの初期化
-  for (let y = 0; y < size; y++) {
-    matrix[y] = [];
-    for (let x = 0; x < size; x++) {
-      matrix[y][x] = false;
-    }
-  }
-
-  // キャンバス上のQRコードを解析
-  for (let y = 0; y < canvas.height; y += pixelSize) {
-    for (let x = 0; x < canvas.width; x += pixelSize) {
+  // ピクセルの解析をバッチ処理で行う（パフォーマンス向上）
+  const stride = Math.max(1, Math.floor(pixelSize / 2)); // サンプリング間隔
+  
+  for (let y = 0; y < canvas.height; y += stride) {
+    for (let x = 0; x < canvas.width; x += stride) {
       const pixelIndex = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
-      const r = data[pixelIndex];
-      const g = data[pixelIndex + 1];
-      const b = data[pixelIndex + 2];
-      
-      // 暗いピクセル（QRコードの黒い部分）を検出
-      const isDark = r < 128 && g < 128 && b < 128;
-      
-      if (isDark) {
-        const matrixX = Math.floor(x / pixelSize);
-        const matrixY = Math.floor(y / pixelSize);
-        if (matrixX < size && matrixY < size) {
-          matrix[matrixY][matrixX] = true;
+      // インデックスがデータ範囲内かチェック
+      if (pixelIndex >= 0 && pixelIndex < data.length) {
+        const r = data[pixelIndex];
+        const g = data[pixelIndex + 1];
+        const b = data[pixelIndex + 2];
+        
+        // 暗いピクセル（QRコードの黒い部分）を検出
+        const isDark = r < 128 && g < 128 && b < 128;
+        
+        if (isDark) {
+          const matrixX = Math.floor(x / pixelSize);
+          const matrixY = Math.floor(y / pixelSize);
+          if (matrixX >= 0 && matrixX < matrixSize && matrixY >= 0 && matrixY < matrixSize) {
+            matrix[matrixY][matrixX] = true;
+          }
         }
       }
     }

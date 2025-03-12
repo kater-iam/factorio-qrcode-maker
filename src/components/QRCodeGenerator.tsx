@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateFactorioBlueprint, getQRCodeMatrix } from '../lib/factorio';
 
@@ -34,41 +34,36 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
   const [blueprintScale, setBlueprintScale] = useState<number>(1.0);
   const [selectedItem, setSelectedItem] = useState<FactorioItemType>('small-lamp');
   const [qrMatrix, setQrMatrix] = useState<boolean[][]>([]);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const qrCodeRef = useRef<HTMLCanvasElement>(null);
 
   // QRコードの表示サイズ（固定）
   const size = 256;
   const cellSize = 8; // QRコードのセルサイズ
 
-  // ブループリントを生成する
-  const generateBlueprint = useCallback(() => {
-    if (qrMatrix.length === 0) return;
+  // QRコードとブループリントを生成する
+  const handleGenerateQRCode = useCallback(() => {
+    setIsGenerating(true);
     
-    // FactorioブループリントJSONを生成
-    const factorioBlueprint = generateFactorioBlueprint(qrMatrix, blueprintScale, selectedItem);
-    setBlueprint(factorioBlueprint);
-  }, [qrMatrix, blueprintScale, selectedItem]);
-
-  // QRコードが変更されたときにマトリックスを更新
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (qrCodeRef.current) {
-        const matrix = getQRCodeMatrix(qrCodeRef.current);
-        setQrMatrix(matrix);
+    // 少し遅延させて処理を実行（UIのブロックを防ぐため）
+    setTimeout(() => {
+      try {
+        if (qrCodeRef.current) {
+          // QRコードのマトリックスを取得
+          const matrix = getQRCodeMatrix(qrCodeRef.current);
+          setQrMatrix(matrix);
+          
+          // FactorioブループリントJSONを生成
+          const factorioBlueprint = generateFactorioBlueprint(matrix, blueprintScale, selectedItem);
+          setBlueprint(factorioBlueprint);
+        }
+      } catch (error) {
+        console.error('QRコード生成エラー:', error);
+      } finally {
+        setIsGenerating(false);
       }
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [input]);
-
-  // QRコードが変更されたときにブループリントを更新
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      generateBlueprint();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [input, selectedItem, blueprintScale, qrMatrix, generateBlueprint]);
+    }, 10);
+  }, [blueprintScale, selectedItem, input]);
 
   // クリップボードにコピー
   const copyToClipboard = () => {
@@ -94,6 +89,39 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
       default: return 'ランプ';
     }
   };
+
+  // QRコードプレビューをメモ化
+  const renderQRPreview = useCallback(() => {
+    if (qrMatrix.length === 0) return null;
+    
+    return (
+      <div className="absolute inset-0 grid" style={{ 
+        gridTemplateColumns: `repeat(${qrMatrix[0].length}, ${cellSize}px)`,
+        gridTemplateRows: `repeat(${qrMatrix.length}, ${cellSize}px)`
+      }}>
+        {qrMatrix.flatMap((row, y) => 
+          row.map((cell, x) => (
+            <div key={`${x}-${y}`} className="relative" style={{ width: cellSize, height: cellSize }}>
+              {cell && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div 
+                    className="w-full h-full"
+                    style={{
+                      backgroundColor: selectedItem === 'concrete' || selectedItem === 'landfill' ? 'rgba(0,0,0,0.7)' : 'transparent',
+                      backgroundImage: `url(${itemImages[selectedItem].src})`,
+                      backgroundSize: 'contain',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }, [qrMatrix, selectedItem, cellSize]);
 
   return (
     <div className="flex flex-col items-center w-full max-w-3xl mx-auto p-4">
@@ -213,43 +241,20 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
               backgroundRepeat: 'repeat'
             }}
           >
-            {qrMatrix.length > 0 && (
-              <div className="absolute inset-0 grid" style={{ 
-                gridTemplateColumns: `repeat(${qrMatrix[0].length}, ${cellSize}px)`,
-                gridTemplateRows: `repeat(${qrMatrix.length}, ${cellSize}px)`
-              }}>
-                {qrMatrix.flatMap((row, y) => 
-                  row.map((cell, x) => (
-                    <div key={`${x}-${y}`} className="relative" style={{ width: cellSize, height: cellSize }}>
-                      {cell && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div 
-                            className="w-full h-full"
-                            style={{
-                              backgroundColor: selectedItem === 'concrete' || selectedItem === 'landfill' ? 'rgba(0,0,0,0.7)' : 'transparent',
-                              backgroundImage: `url(${itemImages[selectedItem].src})`,
-                              backgroundSize: 'contain',
-                              backgroundPosition: 'center',
-                              backgroundRepeat: 'no-repeat'
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            {qrMatrix.length > 0 && renderQRPreview()}
           </div>
           <p className="text-xs text-center mt-2">
             選択アイテム: {getItemDisplayName(selectedItem)}
           </p>
         </div>
         <button
-          onClick={generateBlueprint}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          onClick={handleGenerateQRCode}
+          disabled={isGenerating}
+          className={`px-4 py-2 bg-blue-600 text-white rounded-md transition-colors ${
+            isGenerating ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'
+          }`}
         >
-          ブループリントを生成
+          {isGenerating ? '生成中...' : 'QRコード・ブループリントを生成'}
         </button>
       </div>
 
