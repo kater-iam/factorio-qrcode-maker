@@ -63,7 +63,7 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
         setIsGenerating(false);
       }
     }, 10);
-  }, [blueprintScale, selectedItem, input]);
+  }, [blueprintScale, selectedItem, qrCodeRef]);
 
   // クリップボードにコピー
   const copyToClipboard = () => {
