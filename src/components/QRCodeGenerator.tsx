@@ -18,6 +18,7 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
   const [blueprint, setBlueprint] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [size, setSize] = useState<number>(256);
+  const [blueprintScale, setBlueprintScale] = useState<number>(1.0);
   const qrCodeRef = useRef<HTMLCanvasElement>(null);
 
   // QRコードが変更されたときにブループリントを更新
@@ -27,7 +28,7 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [input, size]);
+  }, [input, size, blueprintScale]);
 
   // ブループリントを生成する
   const generateBlueprint = () => {
@@ -37,7 +38,7 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
     const matrix = getQRCodeMatrix(qrCodeRef.current);
     
     // FactorioブループリントJSONを生成
-    const factorioBlueprint = generateFactorioBlueprint(matrix);
+    const factorioBlueprint = generateFactorioBlueprint(matrix, blueprintScale);
     setBlueprint(factorioBlueprint);
   };
 
@@ -74,21 +75,46 @@ export default function QRCodeGenerator({ defaultValue = 'https://factorio.com' 
         />
       </div>
 
-      {/* QRコードサイズ設定 */}
-      <div className="w-full mb-6">
-        <label htmlFor="qr-size" className="block text-sm font-medium mb-2">
-          QRコードサイズ: {size}px
-        </label>
-        <input
-          id="qr-size"
-          type="range"
-          min="128"
-          max="512"
-          step="32"
-          value={size}
-          onChange={(e) => setSize(Number(e.target.value))}
-          className="w-full"
-        />
+      <div className="flex flex-col md:flex-row w-full gap-4 mb-6">
+        {/* QRコードサイズ設定 */}
+        <div className="w-full md:w-1/2">
+          <label htmlFor="qr-size" className="block text-sm font-medium mb-2">
+            表示QRコードサイズ: {size}px
+          </label>
+          <input
+            id="qr-size"
+            type="range"
+            min="128"
+            max="512"
+            step="32"
+            value={size}
+            onChange={(e) => setSize(Number(e.target.value))}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            ※画面表示用のサイズです。ブループリントには影響しません
+          </p>
+        </div>
+
+        {/* ブループリントスケール設定 */}
+        <div className="w-full md:w-1/2">
+          <label htmlFor="blueprint-scale" className="block text-sm font-medium mb-2">
+            ブループリントスケール: {blueprintScale.toFixed(2)}
+          </label>
+          <input
+            id="blueprint-scale"
+            type="range"
+            min="0.5"
+            max="5.0"
+            step="0.1"
+            value={blueprintScale}
+            onChange={(e) => setBlueprintScale(Number(e.target.value))}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            ※ファクトリオ内のランプ間の距離を調整します
+          </p>
+        </div>
       </div>
 
       {/* QRコード表示 */}

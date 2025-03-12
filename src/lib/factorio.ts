@@ -27,9 +27,10 @@ interface BlueprintEntity {
 /**
  * QRコードマトリックスからFactorioブループリントを生成する
  * @param matrix QRコードのマトリックス（二次元配列）
+ * @param scale ブループリントのスケール（1.0がデフォルト）
  * @returns Factorioブループリント文字列
  */
-export function generateFactorioBlueprint(matrix: boolean[][]): string {
+export function generateFactorioBlueprint(matrix: boolean[][], scale: number = 1.0): string {
   // ブループリントの基本構造
   const blueprint = {
     blueprint: {
@@ -57,8 +58,8 @@ export function generateFactorioBlueprint(matrix: boolean[][]): string {
           entity_number: entityIndex,
           name: ENTITY_TYPE_LAMP,
           position: {
-            x: x + 0.5, // Factorioでは座標が0.5ずつずれる
-            y: y + 0.5
+            x: (x * scale) + 0.5, // スケールに応じて位置を調整
+            y: (y * scale) + 0.5
           },
           control_behavior: {
             circuit_condition: {
