@@ -60,4 +60,7 @@ To contribute:
 
 ## License
 
-MIT License # yousan_2025
+MIT License
+
+
+https://kater-iam.github.io/factorio-qrcode-maker/
