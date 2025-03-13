@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factorio QR Code Blueprint Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Factorio QR Code Blueprint Generator</h1>
+            <p>Generate QR code blueprints for Factorio using lamps</p>
+        </header>
+        
+        <main>
+            <div class="input-section">
+                <h2>Create Your QR Code</h2>
+                <div class="form-group">
+                    <label for="qr-text">Enter URL or text to encode:</label>
+                    <input type="text" id="qr-text" placeholder="https://example.com">
+                </div>
+                <div class="form-group">
+                    <label for="qr-size">QR Code Error Correction Level:</label>
+                    <select id="error-correction">
+                        <option value="L">Low (7%)</option>
+                        <option value="M" selected>Medium (15%)</option>
+                        <option value="Q">Quartile (25%)</option>
+                        <option value="H">High (30%)</option>
+                    </select>
+                </div>
+                <button id="generate-btn" class="primary-btn">Generate Blueprint</button>
+            </div>
+            
+            <div class="result-section">
+                <div class="preview-container">
+                    <h2>QR Code Preview</h2>
+                    <div id="qr-preview"></div>
+                </div>
+                
+                <div class="blueprint-container">
+                    <h2>Factorio Blueprint</h2>
+                    <div class="blueprint-output">
+                        <textarea id="blueprint-output" readonly></textarea>
+                        <button id="copy-btn" class="secondary-btn">Copy to Clipboard</button>
+                    </div>
+                    <div class="blueprint-info">
+                        <h3>Blueprint Information</h3>
+                        <ul>
+                            <li><span>Entities:</span> <span id="entity-count">0</span> lamps</li>
+                            <li><span>Size:</span> <span id="blueprint-size">0×0</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>This tool generates Factorio blueprints with lamps arranged to form QR codes.</p>
+            <p>Paste the blueprint string into Factorio to use it.</p>
+        </footer>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
