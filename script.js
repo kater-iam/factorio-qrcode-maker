@@ -9,12 +9,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const entityCount = document.getElementById('entity-count');
     const blueprintSize = document.getElementById('blueprint-size');
 
+    // Flag to track if input field has been focused before
+    let hasBeenFocused = false;
+
+    // Clear input text on first focus
+    qrTextInput.addEventListener('focus', () => {
+        if (!hasBeenFocused) {
+            qrTextInput.select();
+            hasBeenFocused = true;
+        }
+    });
+
     // Initialize QR code preview with placeholder
     qrPreview.innerHTML = '<div class="placeholder">QR code will appear here</div>';
     
     // Event listeners
     generateBtn.addEventListener('click', generateQRBlueprint);
     copyBtn.addEventListener('click', copyToClipboard);
+    
+    // Automatically generate QR code on page load
+    window.addEventListener('load', () => {
+        generateQRBlueprint();
+    });
     
     // Function to generate QR code and Factorio blueprint
     function generateQRBlueprint() {
