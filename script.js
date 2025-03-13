@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM elements
     const qrTextInput = document.getElementById('qr-text');
     const errorCorrectionSelect = document.getElementById('error-correction');
+    const qrItemSelect = document.getElementById('qr-item');
     const generateBtn = document.getElementById('generate-btn');
     const qrPreview = document.getElementById('qr-preview');
     const blueprintOutput = document.getElementById('blueprint-output');
@@ -34,13 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to generate QR code and Factorio blueprint
     function generateQRBlueprint() {
-        const text = qrTextInput.value.trim();
+        let text = qrTextInput.value.trim();
         if (!text) {
-            alert('Please enter a URL or text to encode.');
-            return;
+            text = "https://kater-iam.github.io/factorio-qrcode-maker";
         }
         
         const errorCorrectionLevel = errorCorrectionSelect.value;
+        const selectedItem = qrItemSelect.value;
         
         try {
             // Generate QR code
@@ -52,14 +53,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const qrMatrix = getQRMatrix(qr);
             
             // Display Factorio-style QR code in preview
-            renderFactorioQRPreview(qrMatrix);
+            renderFactorioQRPreview(qrMatrix, selectedItem);
             
             // Create Factorio blueprint
-            const blueprint = createFactorioBlueprint(qrMatrix);
+            const blueprint = createFactorioBlueprint(qrMatrix, selectedItem);
             
             // Update UI with blueprint and stats
             blueprintOutput.value = blueprint;
-            entityCount.textContent = qrMatrix.flat().filter(Boolean).length;
+            const itemCount = qrMatrix.flat().filter(Boolean).length;
+            entityCount.textContent = itemCount;
+            
+            // Update label to show "tiles" for concrete and landfill, "lamps" or "belts" for others
+            let entityLabel = "lamps";
+            if (selectedItem === 'concrete' || selectedItem === 'landfill') {
+                entityLabel = "tiles";
+            } else if (selectedItem === 'transport-belt') {
+                entityLabel = "belts";
+            }
+            
+            // Find and update the entity label
+            const entityLabelElem = document.querySelector('.blueprint-info li:first-child span:last-child');
+            if (entityLabelElem && entityLabelElem.nextSibling) {
+                entityLabelElem.nextSibling.textContent = ` ${entityLabel}`;
+            }
+            
             blueprintSize.textContent = `${qrMatrix.length}×${qrMatrix.length}`;
             
         } catch (error) {
@@ -85,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Function to create Factorio-style QR code preview
-    function renderFactorioQRPreview(matrix) {
+    function renderFactorioQRPreview(matrix, selectedItem) {
         // Clear previous preview
         qrPreview.innerHTML = '';
         
@@ -122,44 +139,121 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.stroke();
         }
         
-        // Draw lamps
+        // Draw items based on selected item type
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 if (matrix[y][x]) {
-                    // Draw lamp base
-                    ctx.fillStyle = '#919189';
                     const lampX = padding + x * cellSize;
                     const lampY = padding + y * cellSize;
-                    ctx.fillRect(
-                        lampX + cellSize * 0.1, 
-                        lampY + cellSize * 0.1, 
-                        cellSize * 0.8, 
-                        cellSize * 0.8
-                    );
                     
-                    // Draw lamp light
-                    const gradient = ctx.createRadialGradient(
-                        lampX + cellSize/2, 
-                        lampY + cellSize/2, 
-                        0,
-                        lampX + cellSize/2, 
-                        lampY + cellSize/2, 
-                        cellSize/2
-                    );
-                    gradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
-                    gradient.addColorStop(0.6, 'rgba(255, 255, 100, 0.8)');
-                    gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(
-                        lampX + cellSize/2, 
-                        lampY + cellSize/2, 
-                        cellSize/1.5, 
-                        0, 
-                        Math.PI * 2
-                    );
-                    ctx.fill();
+                    // Different visuals based on selected item
+                    switch(selectedItem) {
+                        case 'small-lamp':
+                            // Draw lamp base
+                            ctx.fillStyle = '#919189';
+                            ctx.fillRect(
+                                lampX + cellSize * 0.1, 
+                                lampY + cellSize * 0.1, 
+                                cellSize * 0.8, 
+                                cellSize * 0.8
+                            );
+                            
+                            // Draw lamp light
+                            const gradient = ctx.createRadialGradient(
+                                lampX + cellSize/2, 
+                                lampY + cellSize/2, 
+                                0,
+                                lampX + cellSize/2, 
+                                lampY + cellSize/2, 
+                                cellSize/2
+                            );
+                            gradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
+                            gradient.addColorStop(0.6, 'rgba(255, 255, 100, 0.8)');
+                            gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+                            
+                            ctx.fillStyle = gradient;
+                            ctx.beginPath();
+                            ctx.arc(
+                                lampX + cellSize/2, 
+                                lampY + cellSize/2, 
+                                cellSize/1.5, 
+                                0, 
+                                Math.PI * 2
+                            );
+                            ctx.fill();
+                            break;
+                            
+                        case 'transport-belt':
+                            // Yellow belt
+                            ctx.fillStyle = '#e8c700';
+                            ctx.fillRect(
+                                lampX + cellSize * 0.1, 
+                                lampY + cellSize * 0.1, 
+                                cellSize * 0.8, 
+                                cellSize * 0.8
+                            );
+                            // Belt details
+                            ctx.strokeStyle = '#333';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(lampX + cellSize * 0.2, lampY + cellSize * 0.3);
+                            ctx.lineTo(lampX + cellSize * 0.8, lampY + cellSize * 0.3);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(lampX + cellSize * 0.2, lampY + cellSize * 0.7);
+                            ctx.lineTo(lampX + cellSize * 0.8, lampY + cellSize * 0.7);
+                            ctx.stroke();
+                            break;
+                            
+                        case 'concrete':
+                            // Concrete
+                            ctx.fillStyle = '#777';
+                            ctx.fillRect(
+                                lampX, 
+                                lampY, 
+                                cellSize, 
+                                cellSize
+                            );
+                            // Concrete texture
+                            ctx.fillStyle = '#888';
+                            for (let i = 0; i < 3; i++) {
+                                for (let j = 0; j < 3; j++) {
+                                    if ((i + j) % 2 === 0) {
+                                        ctx.fillRect(
+                                            lampX + cellSize * i/3, 
+                                            lampY + cellSize * j/3, 
+                                            cellSize/3, 
+                                            cellSize/3
+                                        );
+                                    }
+                                }
+                            }
+                            break;
+                            
+                        case 'landfill':
+                            // Landfill
+                            ctx.fillStyle = '#7d6e56';
+                            ctx.fillRect(
+                                lampX, 
+                                lampY, 
+                                cellSize, 
+                                cellSize
+                            );
+                            // Landfill texture
+                            ctx.fillStyle = '#8a7860';
+                            for (let i = 0; i < 4; i++) {
+                                ctx.beginPath();
+                                ctx.arc(
+                                    lampX + cellSize * (0.2 + 0.6 * Math.random()),
+                                    lampY + cellSize * (0.2 + 0.6 * Math.random()),
+                                    cellSize * 0.1,
+                                    0,
+                                    Math.PI * 2
+                                );
+                                ctx.fill();
+                            }
+                            break;
+                    }
                 }
             }
         }
@@ -174,12 +268,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Function to create Factorio blueprint from QR matrix
-    function createFactorioBlueprint(matrix) {
+    function createFactorioBlueprint(matrix, selectedItem) {
         // Blueprint structure
         const blueprint = {
             blueprint: {
                 icons: [
-                    { signal: { type: "item", name: "small-lamp" }, index: 1 }
+                    { signal: { type: getItemType(selectedItem), name: selectedItem }, index: 1 }
                 ],
                 entities: [],
                 item: "blueprint",
@@ -189,24 +283,55 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let entityNumber = 1;
         
-        // Add lamps for each dark module in the QR code
+        // Add entities for each dark module in the QR code
         for (let y = 0; y < matrix.length; y++) {
             for (let x = 0; x < matrix[y].length; x++) {
                 if (matrix[y][x]) {
-                    blueprint.blueprint.entities.push({
-                        entity_number: entityNumber++,
-                        name: "small-lamp",
-                        position: {
-                            x: x,
-                            y: y
+                    // For tiles (concrete, landfill), we use a different structure
+                    if (selectedItem === 'concrete' || selectedItem === 'landfill') {
+                        // If this is the first tile, initialize the tiles array
+                        if (!blueprint.blueprint.tiles) {
+                            blueprint.blueprint.tiles = [];
                         }
-                    });
+                        
+                        blueprint.blueprint.tiles.push({
+                            name: selectedItem,
+                            position: {
+                                x: x,
+                                y: y
+                            }
+                        });
+                    } else {
+                        // For entities (lamp, belt)
+                        blueprint.blueprint.entities.push({
+                            entity_number: entityNumber++,
+                            name: selectedItem,
+                            position: {
+                                x: x,
+                                y: y
+                            }
+                        });
+                    }
                 }
             }
         }
         
         // Encode blueprint to string
         return encodeBlueprint(blueprint);
+    }
+    
+    // Helper function to determine item type for blueprint icon
+    function getItemType(itemName) {
+        switch(itemName) {
+            case 'small-lamp':
+            case 'transport-belt':
+                return 'item';
+            case 'concrete':
+            case 'landfill':
+                return 'item';
+            default:
+                return 'item';
+        }
     }
     
     // Function to encode blueprint to the Factorio format
