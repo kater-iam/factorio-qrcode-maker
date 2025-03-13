@@ -322,6 +322,45 @@ textarea {
     color: var(--factorio-text);
 }
 
+/* Video Section */
+.video-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--factorio-border);
+}
+
+.video-section h3 {
+    color: var(--factorio-accent);
+    margin-bottom: 1rem;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--factorio-border);
+    background-color: #252522;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--border-radius) - 1px);
+}
+
+/* Adjust for small screens */
+@media (max-width: 768px) {
+    .video-section {
+        margin-top: 1.5rem;
+    }
+}
+
 /* Footer */
 footer {
     text-align: center;
