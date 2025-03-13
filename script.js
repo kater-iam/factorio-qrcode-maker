@@ -32,11 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
             qr.addData(text);
             qr.make();
             
-            // Display QR code in preview
-            qrPreview.innerHTML = qr.createImgTag(5);
-            
             // Get QR code matrix
             const qrMatrix = getQRMatrix(qr);
+            
+            // Display Factorio-style QR code in preview
+            renderFactorioQRPreview(qrMatrix);
             
             // Create Factorio blueprint
             const blueprint = createFactorioBlueprint(qrMatrix);
@@ -66,6 +66,95 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         return matrix;
+    }
+    
+    // Function to create Factorio-style QR code preview
+    function renderFactorioQRPreview(matrix) {
+        // Clear previous preview
+        qrPreview.innerHTML = '';
+        
+        // Calculate canvas size based on matrix size
+        const size = matrix.length;
+        const cellSize = Math.min(Math.floor(300 / size), 10); // Max cell size of 10px
+        const padding = 10;
+        const canvasSize = size * cellSize + (padding * 2);
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw background (Factorio dark ground)
+        ctx.fillStyle = '#2d2d2a';
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
+        
+        // Draw grid pattern (optional)
+        ctx.strokeStyle = '#3a3a36';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i <= size; i++) {
+            const pos = padding + i * cellSize;
+            // Horizontal
+            ctx.beginPath();
+            ctx.moveTo(padding, pos);
+            ctx.lineTo(padding + size * cellSize, pos);
+            ctx.stroke();
+            // Vertical
+            ctx.beginPath();
+            ctx.moveTo(pos, padding);
+            ctx.lineTo(pos, padding + size * cellSize);
+            ctx.stroke();
+        }
+        
+        // Draw lamps
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                if (matrix[y][x]) {
+                    // Draw lamp base
+                    ctx.fillStyle = '#919189';
+                    const lampX = padding + x * cellSize;
+                    const lampY = padding + y * cellSize;
+                    ctx.fillRect(
+                        lampX + cellSize * 0.1, 
+                        lampY + cellSize * 0.1, 
+                        cellSize * 0.8, 
+                        cellSize * 0.8
+                    );
+                    
+                    // Draw lamp light
+                    const gradient = ctx.createRadialGradient(
+                        lampX + cellSize/2, 
+                        lampY + cellSize/2, 
+                        0,
+                        lampX + cellSize/2, 
+                        lampY + cellSize/2, 
+                        cellSize/2
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
+                    gradient.addColorStop(0.6, 'rgba(255, 255, 100, 0.8)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(
+                        lampX + cellSize/2, 
+                        lampY + cellSize/2, 
+                        cellSize/1.5, 
+                        0, 
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // Add "Factorio" caption
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText('Factorio QR Code Preview', padding, canvasSize - 2);
+        
+        // Add canvas to preview
+        qrPreview.appendChild(canvas);
     }
     
     // Function to create Factorio blueprint from QR matrix
