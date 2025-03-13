@@ -53,19 +53,19 @@ body {
 
 @keyframes gear-spin {
     0% {
-        transform: translate(90px, 100px) scale(0.9) rotate(0deg);
+        transform: translate(90px, 50px) scale(0.9) rotate(0deg);
     }
     25% {
-        transform: translate(90px, 100px) scale(0.9) rotate(30deg);
+        transform: translate(90px, 50px) scale(0.9) rotate(30deg);
     }
     50% {
-        transform: translate(90px, 100px) scale(0.9) rotate(15deg);
+        transform: translate(90px, 50px) scale(0.9) rotate(15deg);
     }
     75% {
-        transform: translate(90px, 100px) scale(0.9) rotate(45deg);
+        transform: translate(90px, 50px) scale(0.9) rotate(45deg);
     }
     100% {
-        transform: translate(90px, 100px) scale(0.9) rotate(0deg);
+        transform: translate(90px, 50px) scale(0.9) rotate(0deg);
     }
 }
 
