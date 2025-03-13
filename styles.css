@@ -255,6 +255,7 @@ select:focus {
 }
 
 #qr-preview canvas {
+    max-width: 100%;
     position: relative;
     z-index: 1;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
